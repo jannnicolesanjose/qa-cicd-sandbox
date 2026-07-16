@@ -3,8 +3,8 @@ const fs = require('fs');
 
 // MOCK CONFIGURATION 
 // Change these numbers to test your pipeline:
-const PASSED_TESTS = 9;   // Expected successful runs
-const FAILED_TESTS = 1;   // Unexpected failures
+const PASSED_TESTS = 8;   // Expected successful runs
+const FAILED_TESTS = 2;   // Unexpected failures
 // ==========================================
 
 const total = PASSED_TESTS + FAILED_TESTS;
