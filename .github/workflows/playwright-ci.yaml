@@ -1,0 +1,64 @@
+name: Mock QA Test Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  qa-test-gate:
+    name: Run Mock QA Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run Mock Test Script
+        run: node run-mock-tests.js
+
+      - name: Evaluate Quality Gate Pass Rate
+        id: quality-gate
+        run: |
+          echo "=========================================="
+          echo "   EVALUATING AUTOMATED QA PASS RATE   "
+          echo "=========================================="
+          
+          PASS_RATE=$(node -e "
+            const fs = require('fs');
+            try {
+              const data = JSON.parse(fs.readFileSync('test-results.json', 'utf8'));
+              const stats = data.stats;
+              const total = stats.expected + stats.unexpected + stats.flaky;
+              if (total === 0) {
+                console.log('0');
+                process.exit(0);
+              }
+              const passed = stats.expected;
+              const rate = (passed / total) * 100;
+              console.log(rate.toFixed(2));
+            } catch (err) {
+              console.error('Error reading mock JSON report:', err.message);
+              process.exit(1);
+            }
+          ")
+
+          echo "Calculated QA Pass Rate: $PASS_RATE%"
+          
+          THRESHOLD=90
+          
+          if (( $(echo "$PASS_RATE < $THRESHOLD" | bc -l) )); then
+            echo "❌ QUALITY GATE FAILED!"
+            echo "The mock test pass rate was $PASS_RATE%, which is below the required $THRESHOLD% standard."
+            exit 1
+          else
+            echo "✅ QUALITY GATE PASSED!"
+            echo "The mock test pass rate is $PASS_RATE%, meeting the required $THRESHOLD% standard!"
+            exit 0
+          fi
